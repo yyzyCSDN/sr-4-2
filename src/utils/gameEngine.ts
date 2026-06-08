@@ -27,7 +27,8 @@ function getNeighbors(pos: Position, level: Level): Position[] {
       p.x >= 0 && p.x < level.width &&
       p.y >= 0 && p.y < level.height &&
       level.grid[p.y][p.x].type !== 'empty' &&
-      level.grid[p.y][p.x].type !== 'wall'
+      level.grid[p.y][p.x].type !== 'wall' &&
+      level.grid[p.y][p.x].type !== 'guard'
     );
 }
 

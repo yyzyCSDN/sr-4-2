@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Level, CellType, Monster, Position } from '../types/game';
+import { Level, CellType, Cell, Monster, Position } from '../types/game';
 import { createInitialState, initializeGame, processStep, GameState } from '../utils/gameEngine';
 
 function makeLevel(opts: {
@@ -14,7 +14,7 @@ function makeLevel(opts: {
   const startPos = opts.startPos ?? { x: 0, y: 0 };
   const endPos = opts.endPos ?? { x: width - 1, y: 0 };
 
-  const grid = Array(height)
+  const grid: Cell[][] = Array(height)
     .fill(null)
     .map(() =>
       Array(width)
@@ -31,7 +31,7 @@ function makeLevel(opts: {
     }
   }
 
-  return { id: 'test_level', name: 'test', width, height, grid, startPos, endPos };
+  return { id: 'test_level', name: 'test', width, height, grid, startPos, endPos, patrolRoutes: [] };
 }
 
 function makeMonster(hp: number, attack: number, defense: number = 0): Monster {

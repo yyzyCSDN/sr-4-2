@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Level, CellType } from '../types/game';
+import { Level, CellType, PatrolVerificationResult } from '../types/game';
 import { MapEditor } from '../components/MapEditor';
 import { HeroStatus } from '../components/HeroStatus';
 import { BattleLogPanel } from '../components/BattleLogPanel';
 import { GameBoard } from '../components/GameBoard';
 import { GameResultModal } from '../components/GameResultModal';
+import { PatrolReplay } from '../components/PatrolReplay';
+import { PatrolResultModal } from '../components/PatrolResultModal';
 import { createInitialState, initializeGame, processStep, GameState } from '../utils/gameEngine';
+import { runPatrolVerification } from '../utils/patrolEngine';
 import { saveLevels, loadLevels, exportToJSON, importFromJSON } from '../utils/storage';
 
 const createEmptyLevel = (): Level => {
@@ -36,17 +39,22 @@ const createEmptyLevel = (): Level => {
     grid,
     startPos: { x: 1, y: 1 },
     endPos: { x: width - 2, y: height - 2 },
+    patrolRoutes: [],
   };
 };
 
+type AppMode = 'editor' | 'game' | 'patrol';
+
 export default function Home() {
-  const [mode, setMode] = useState<'editor' | 'game'>('editor');
+  const [mode, setMode] = useState<AppMode>('editor');
   const [level, setLevel] = useState<Level>(createEmptyLevel);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [gameSpeed, setGameSpeed] = useState(500);
   const [levels, setLevels] = useState<Level[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [patrolResult, setPatrolResult] = useState<PatrolVerificationResult | null>(null);
+  const [showPatrolResult, setShowPatrolResult] = useState(false);
 
   useEffect(() => {
     const savedLevels = loadLevels();
@@ -79,6 +87,12 @@ export default function Home() {
     setIsAutoPlaying(false);
   }, [level]);
 
+  const startPatrol = useCallback(() => {
+    const result = runPatrolVerification(level);
+    setPatrolResult(result);
+    setMode('patrol');
+  }, [level]);
+
   const handleStep = () => {
     if (gameState && gameState.isRunning && !gameState.isFinished) {
       setGameState(processStep(gameState));
@@ -93,10 +107,17 @@ export default function Home() {
     setMode('editor');
     setGameState(null);
     setIsAutoPlaying(false);
+    setPatrolResult(null);
+    setShowPatrolResult(false);
   };
 
   const handleRetry = () => {
     startGame();
+  };
+
+  const handlePatrolRetry = () => {
+    setShowPatrolResult(false);
+    startPatrol();
   };
 
   const handleSaveLevel = () => {
@@ -107,7 +128,10 @@ export default function Home() {
   };
 
   const handleLoadLevel = (levelToLoad: Level) => {
-    setLevel(levelToLoad);
+    setLevel({
+      ...levelToLoad,
+      patrolRoutes: levelToLoad.patrolRoutes || [],
+    });
   };
 
   const handleExport = () => {
@@ -118,7 +142,7 @@ export default function Home() {
     const file = e.target.files?.[0];
     if (file) {
       importFromJSON<Level>(file).then((importedLevel) => {
-        setLevel({ ...importedLevel, id: `level_${Date.now()}` });
+        setLevel({ ...importedLevel, id: `level_${Date.now()}`, patrolRoutes: importedLevel.patrolRoutes || [] });
       }).catch(() => {
         alert('导入失败，请检查文件格式');
       });
@@ -128,6 +152,9 @@ export default function Home() {
   const handleNewLevel = () => {
     setLevel(createEmptyLevel());
   };
+
+  const hasGuards = level.grid.some(row => row.some(cell => cell.type === 'guard'));
+  const hasPatrolRoutes = level.patrolRoutes.length > 0;
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -189,8 +216,16 @@ export default function Home() {
                 >
                   ▶️ 开始测试
                 </button>
+                <button
+                  onClick={startPatrol}
+                  disabled={!hasGuards || !hasPatrolRoutes}
+                  className="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-bold transition-colors"
+                  title={!hasGuards ? '请先放置守卫' : !hasPatrolRoutes ? '请先绘制巡逻路线' : '开始巡逻验收'}
+                >
+                  🔍 巡逻验收
+                </button>
               </>
-            ) : (
+            ) : mode === 'game' ? (
               <>
                 <button
                   onClick={handleStep}
@@ -227,6 +262,13 @@ export default function Home() {
                   ✏️ 返回编辑
                 </button>
               </>
+            ) : (
+              <button
+                onClick={handleBackToEditor}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors"
+              >
+                ✏️ 返回编辑
+              </button>
             )}
           </div>
         </div>
@@ -245,10 +287,15 @@ export default function Home() {
                   className="px-3 py-1 bg-gray-800 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
                 />
               </label>
+              {hasGuards && (
+                <span className="text-cyan-400 text-sm">
+                  💂 守卫: {level.grid.flat().filter(c => c.type === 'guard').length} | 🔵 路线: {level.patrolRoutes.length}
+                </span>
+              )}
             </div>
             <MapEditor level={level} onChange={setLevel} />
           </div>
-        ) : gameState ? (
+        ) : mode === 'game' && gameState ? (
           <div className="grid grid-cols-12 gap-6">
             <div className="col-span-3 space-y-4">
               <HeroStatus hero={gameState.hero} />
@@ -291,6 +338,13 @@ export default function Home() {
               </div>
             </div>
           </div>
+        ) : mode === 'patrol' && patrolResult ? (
+          <PatrolReplay
+            level={level}
+            result={patrolResult}
+            onFinished={() => setShowPatrolResult(true)}
+            onBack={handleBackToEditor}
+          />
         ) : null}
       </main>
 
@@ -299,6 +353,15 @@ export default function Home() {
           result={gameState.result}
           onClose={handleBackToEditor}
           onRetry={handleRetry}
+        />
+      )}
+
+      {showPatrolResult && patrolResult && (
+        <PatrolResultModal
+          result={patrolResult}
+          level={level}
+          onClose={handleBackToEditor}
+          onRetry={handlePatrolRetry}
         />
       )}
 

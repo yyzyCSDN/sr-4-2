@@ -21,6 +21,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ level, hero, path, current
       case 'treasure': return cell.treasure?.emoji || '📦';
       case 'wall': return '🧱';
       case 'floor': return '·';
+      case 'guard': return cell.guard?.emoji || '💂';
       default: return '';
     }
   };
@@ -48,6 +49,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ level, hero, path, current
       case 'monster': return 'bg-red-900';
       case 'trap': return 'bg-orange-900';
       case 'treasure': return 'bg-amber-700';
+      case 'guard': return 'bg-indigo-800';
       default: return 'bg-gray-900';
     }
   };

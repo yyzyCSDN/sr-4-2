@@ -1,4 +1,11 @@
-import { MonsterTemplate, TrapTemplate, TreasureTemplate, Hero } from '../types/game';
+import { MonsterTemplate, TrapTemplate, TreasureTemplate, Hero, GuardTemplate } from '../types/game';
+
+export const GUARD_TEMPLATES: GuardTemplate[] = [
+  { id: 'rookie_guard', name: '新兵守卫', emoji: '💂', fatigue: 8, vision: 2 },
+  { id: 'veteran_guard', name: '老兵守卫', emoji: '🪖', fatigue: 12, vision: 3 },
+  { id: 'elite_guard', name: '精英守卫', emoji: '🎖️', fatigue: 16, vision: 4 },
+  { id: 'watchman', name: '瞭望哨', emoji: '🔭', fatigue: 6, vision: 5 },
+];
 
 export const MONSTER_TEMPLATES: MonsterTemplate[] = [
   { id: 'slime', name: '史莱姆', emoji: '🟢', hp: 30, attack: 5, defense: 2, expReward: 10, goldReward: 5 },

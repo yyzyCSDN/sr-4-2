@@ -48,13 +48,52 @@ export interface Hero {
   items: string[];
 }
 
-export type CellType = 'empty' | 'wall' | 'floor' | 'start' | 'end' | 'monster' | 'trap' | 'treasure';
+export interface Guard {
+  id: string;
+  name: string;
+  emoji: string;
+  fatigue: number;
+  vision: number;
+}
+
+export interface PatrolRoute {
+  guardId: string;
+  waypoints: Position[];
+}
+
+export interface PatrolNightRecord {
+  night: number;
+  guardId: string;
+  visitedCells: Position[];
+  seenCells: Position[];
+  fatigueUsed: number;
+  fatigueTotal: number;
+  stoppedEarly: boolean;
+}
+
+export interface PatrolVerificationResult {
+  nights: PatrolNightRecord[];
+  totalPatrolCells: number;
+  missedCells: Position[];
+  missedCount: number;
+  coveragePercent: number;
+  guardResults: {
+    guardId: string;
+    guardName: string;
+    nightsCompleted: number;
+    totalVisited: number;
+    totalSeen: number;
+  }[];
+}
+
+export type CellType = 'empty' | 'wall' | 'floor' | 'start' | 'end' | 'monster' | 'trap' | 'treasure' | 'guard';
 
 export interface Cell {
   type: CellType;
   monster?: Monster;
   trap?: Trap;
   treasure?: Treasure;
+  guard?: Guard;
   visited?: boolean;
 }
 
@@ -66,6 +105,7 @@ export interface Level {
   grid: Cell[][];
   startPos: Position;
   endPos: Position;
+  patrolRoutes: PatrolRoute[];
 }
 
 export interface BattleLog {
@@ -87,6 +127,14 @@ export interface GameResult {
   steps: number;
   heroFinalHp: number;
   heroMaxHp: number;
+}
+
+export interface GuardTemplate {
+  id: string;
+  name: string;
+  emoji: string;
+  fatigue: number;
+  vision: number;
 }
 
 export interface MonsterTemplate {
